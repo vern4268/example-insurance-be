@@ -60,6 +60,7 @@ yarn start:prod
 
 ## Solutions
 
+-   The Postgres database is setup locally using the official docker image.
 -   Role access is enforced using guards. The auth guard verifies the jwt token in the request header and checks for role. The auth guard is imported as a global guard in the main file. Only controllers/services decorated by the @Role decorator supplied with a role is guarded.
 -   Validation is done in the DTO using class-validator.
 -   TypeORM is used to connect to the Postgres database.
