@@ -5,7 +5,7 @@ import { APP_GUARD } from '@nestjs/core';
 
 import { ProductsModule } from './products/products.module';
 import { Product } from './products/product.entity';
-import { RolesGuard } from './common/guards/auth.guard';
+import { AuthGuard } from './common/guards/auth.guard';
 import { AuthModule } from './auth/auth.module';
 
 @Module({
@@ -33,7 +33,7 @@ import { AuthModule } from './auth/auth.module';
     providers: [
         {
             provide: APP_GUARD,
-            useClass: RolesGuard,
+            useClass: AuthGuard,
         },
     ],
 })
