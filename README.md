@@ -50,7 +50,7 @@ yarn start:prod
 2. All endpoints (except for auth) require authentication to access.
 3. Postgres is used as the database.
 
-## Featues
+## Features
 
 1. Login as user or admin.
 2. Query for a product with product code and location. (user & admin)
