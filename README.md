@@ -40,7 +40,7 @@ yarn start:prod
 ## Swagger UI is supported
 
 1. Append `/swagger` to the url to access the Swagger API documentation.
-2. Login using the `/auth/login` API as either a user or admin by specifying the role in the body.
+2. Login using the login API as either a user or admin by specifying the role in the body.
 3. Copy the auth token generated and authorize with Swagger.
 4. Call API.
 
