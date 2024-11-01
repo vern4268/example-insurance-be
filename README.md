@@ -39,9 +39,9 @@ yarn start:prod
 
 ## Swagger UI is supported
 
-1. Append /swagger to the url to access the Swagger API documentation.
-2. Login using the /auth/login API as either a user or admin by specifying the role in the body.
-3. Copy the auth token generated and authorize with Swagger (click on the 'Authorize' button).
+1. Append `/swagger` to the url to access the Swagger API documentation.
+2. Login using the `/auth/login` API as either a user or admin by specifying the role in the body.
+3. Copy the auth token generated and authorize with Swagger.
 4. Call API.
 
 ## Assumptions
@@ -53,10 +53,10 @@ yarn start:prod
 ## Featues
 
 1. Login as user or admin.
-2. Query for a product with productCode and location. (user & admin)
-3. Create a new product by providing productCode, location and price. (admin only)
-4. Update a product. (admin only)
-5. Delete a product. (admin only)
+2. Query for a product with product code and location. (user & admin)
+3. Create a new product by providing product code, location and price. (admin only)
+4. Update a product by specifying a product code and providing the location and price. (admin only)
+5. Delete a product by specifying a product code. (admin only)
 
 ## Solutions
 
