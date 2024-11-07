@@ -1,9 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 
 import { ProductsService } from './products.service';
 import { Product } from './product.entity';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
 
 describe('ProductsService', () => {
     let productService: ProductsService;
@@ -38,6 +38,7 @@ describe('ProductsService', () => {
         beforeEach(() => {
             mockRepository.create.mockClear();
             mockRepository.insert.mockClear();
+            mockRepository.findOneBy.mockClear();
         });
 
         it('should create a new product', async () => {
@@ -98,9 +99,13 @@ describe('ProductsService', () => {
         });
 
         it('should return a product with the provided productCode and location', async () => {
+            const productCode = '1001';
+            const location = 'West Malaysia';
+
             const mockProduct = {
-                productCode: '1001',
-                location: 'West Malaysia',
+                id: 1,
+                productCode,
+                location,
                 price: 300,
             } as Product;
 
@@ -108,18 +113,13 @@ describe('ProductsService', () => {
                 .spyOn(mockRepository, 'findOneBy')
                 .mockReturnValue(mockProduct);
 
-            const productCode = '1001';
-            const location = 'West Malaysia';
-
-            const result = await productService.findOne({ productCode, location });
+            expect(mockRepository.findOneBy({ productCode, location })).toEqual(mockProduct);
 
             expect(findOneBySpy).toHaveBeenCalledTimes(1);
             expect(findOneBySpy).toHaveBeenCalledWith({
                 productCode,
                 location,
             });
-
-            expect(result).toEqual(mockProduct);
         });
 
         it('should throw not found exception if product is not found', async () => {
@@ -137,6 +137,71 @@ describe('ProductsService', () => {
                 productCode,
                 location,
             });
+        });
+    });
+
+    describe('update', () => {
+        beforeEach(() => {
+            mockRepository.update.mockClear();
+            mockRepository.findOneBy.mockClear();
+        });
+
+        it('should update the product', async () => {
+            const productCode = '1001';
+
+            const mockProduct = {
+                id: 1,
+                productCode,
+                location: 'West Malaysia',
+                price: 300,
+            } as Product;
+
+            const updateProductDto = {
+                location: 'West Malaysia',
+                price: 300,
+            };
+
+            const productResult = {
+                affected: 1,
+            };
+
+            const updateSpy = jest.spyOn(mockRepository, 'update').mockReturnValue(productResult);
+
+            const findOneBySpy = jest
+                .spyOn(mockRepository, 'findOneBy')
+                .mockReturnValue(mockProduct);
+
+            expect(mockRepository.update({ productCode }, updateProductDto)).toEqual(productResult);
+            expect(mockRepository.findOneBy({ productCode })).toEqual(mockProduct);
+
+            expect(updateSpy).toHaveBeenCalledTimes(1);
+            expect(updateSpy).toHaveBeenCalledWith({ productCode }, updateProductDto);
+
+            expect(findOneBySpy).toHaveBeenCalledTimes(1);
+            expect(findOneBySpy).toHaveBeenCalledWith({ productCode });
+        });
+
+        it('should throw not found exception if no product has been updated', async () => {
+            const productCode = '1001';
+
+            const updateProductDto = {
+                location: 'West Malaysia',
+                price: 300,
+            };
+
+            const productResult = {
+                affected: 0,
+            };
+
+            const updateSpy = jest.spyOn(mockRepository, 'update').mockReturnValue(productResult);
+            const findOneBySpy = jest.spyOn(mockRepository, 'findOneBy');
+
+            expect(mockRepository.update({ productCode }, updateProductDto)).toEqual(productResult);
+
+            expect(updateSpy).toHaveBeenCalledTimes(1);
+            expect(updateSpy).toHaveBeenCalledWith({ productCode }, updateProductDto);
+
+            expect(findOneBySpy).toHaveBeenCalledTimes(0);
         });
     });
 });
