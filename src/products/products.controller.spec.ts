@@ -1,6 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 
 import { ProductsController } from './products.controller';
 import { ProductsService } from './products.service';
@@ -8,6 +10,7 @@ import { Product } from './product.entity';
 
 describe('ProductsController', () => {
     let productsController: ProductsController;
+    let cache: Cache;
 
     const mockJwtService = {};
 
@@ -16,6 +19,11 @@ describe('ProductsController', () => {
         findOne: jest.fn(),
         update: jest.fn(),
         delete: jest.fn(),
+    };
+
+    const mockCacheManager = {
+        get: () => jest.fn(),
+        set: () => jest.fn(),
     };
 
     beforeEach(async () => {
@@ -30,10 +38,15 @@ describe('ProductsController', () => {
                     provide: ProductsService,
                     useValue: mockProductsService,
                 },
+                {
+                    provide: CACHE_MANAGER,
+                    useValue: mockCacheManager,
+                },
             ],
         }).compile();
 
         productsController = module.get<ProductsController>(ProductsController);
+        cache = module.get(CACHE_MANAGER);
     });
 
     it('should be defined', () => {
@@ -59,12 +72,12 @@ describe('ProductsController', () => {
                 price: 300,
             } as Product;
 
-            jest.spyOn(mockProductsService, 'create').mockReturnValue(product);
+            const createSpy = jest.spyOn(mockProductsService, 'create').mockReturnValue(product);
 
-            await expect(productsController.create(createProductBody)).resolves.toBe(product);
+            await expect(productsController.create(createProductBody)).resolves.toEqual(product);
 
-            expect(mockProductsService.create).toHaveBeenCalledTimes(1);
-            expect(mockProductsService.create).toHaveBeenCalledWith(createProductBody);
+            expect(createSpy).toHaveBeenCalledTimes(1);
+            expect(createSpy).toHaveBeenCalledWith(createProductBody);
         });
 
         it('should throw a bad request exception if product already exists', async () => {
@@ -74,16 +87,16 @@ describe('ProductsController', () => {
                 price: 300,
             };
 
-            jest.spyOn(mockProductsService, 'create').mockRejectedValue(
-                new BadRequestException('Product already exists!'),
-            );
+            const createSpy = jest
+                .spyOn(mockProductsService, 'create')
+                .mockRejectedValue(new BadRequestException('Product already exists!'));
 
             await expect(productsController.create(createProductBody)).rejects.toThrow(
                 new BadRequestException('Product already exists!'),
             );
 
-            expect(mockProductsService.create).toHaveBeenCalledTimes(1);
-            expect(mockProductsService.create).toHaveBeenCalledWith(createProductBody);
+            expect(createSpy).toHaveBeenCalledTimes(1);
+            expect(createSpy).toHaveBeenCalledWith(createProductBody);
         });
     });
 
@@ -92,7 +105,53 @@ describe('ProductsController', () => {
             mockProductsService.findOne.mockClear();
         });
 
-        it('should return a product if productCode and location are supplied', async () => {
+        afterEach(() => {
+            jest.restoreAllMocks();
+        });
+
+        it('should cache the product', async () => {
+            const productCode = '1001';
+            const location = 'West Malaysia';
+            const cacheKey = `product_${productCode}_${location}`;
+
+            const product = {
+                id: 1,
+                productCode: '1001',
+                location: 'West Malaysia',
+                price: 300,
+            } as Product;
+
+            const spy = jest.spyOn(cache, 'set');
+
+            await cache.set(cacheKey, product);
+
+            expect(spy).toHaveBeenCalledTimes(1);
+            expect(spy.mock.calls[0][0]).toEqual(cacheKey);
+            expect(spy.mock.calls[0][1]).toEqual(product);
+        });
+
+        it('should return the product from cache if productCode and location are supplied', async () => {
+            const productCode = '1001';
+            const location = 'West Malaysia';
+
+            const product = {
+                id: 1,
+                productCode: '1001',
+                location: 'West Malaysia',
+                price: 300,
+            } as Product;
+
+            jest.spyOn(cache, 'get').mockResolvedValue(product);
+
+            const res = await productsController.findOne({
+                productCode,
+                location,
+            });
+
+            expect(res).toEqual(product);
+        });
+
+        it('should return a product from service if productCode and location are supplied', async () => {
             const productCode = '1001';
             const location = 'West Malaysia';
 
@@ -108,12 +167,13 @@ describe('ProductsController', () => {
                 price: 300,
             } as Product;
 
-            jest.spyOn(mockProductsService, 'findOne').mockReturnValue(product);
+            jest.spyOn(cache, 'get').mockReturnValue(null);
+            const findOneSpy = jest.spyOn(mockProductsService, 'findOne').mockReturnValue(product);
 
-            await expect(productsController.findOne(findProductDto)).resolves.toBe(product);
+            await expect(productsController.findOne(findProductDto)).resolves.toEqual(product);
 
-            expect(mockProductsService.findOne).toHaveBeenCalledTimes(1);
-            expect(mockProductsService.findOne).toHaveBeenCalledWith(findProductDto);
+            expect(findOneSpy).toHaveBeenCalledTimes(1);
+            expect(findOneSpy).toHaveBeenCalledWith(findProductDto);
         });
 
         it('should throw a not found exception if product does not exist', async () => {
@@ -125,16 +185,17 @@ describe('ProductsController', () => {
                 location,
             };
 
-            jest.spyOn(mockProductsService, 'findOne').mockRejectedValue(
-                new NotFoundException('Product information not found!'),
-            );
+            jest.spyOn(cache, 'get').mockReturnValue(null);
+            const findOneSpy = jest
+                .spyOn(mockProductsService, 'findOne')
+                .mockRejectedValue(new NotFoundException('Product information not found!'));
 
             await expect(productsController.findOne(findProductDto)).rejects.toThrow(
                 new NotFoundException('Product information not found!'),
             );
 
-            expect(mockProductsService.findOne).toHaveBeenCalledTimes(1);
-            expect(mockProductsService.findOne).toHaveBeenCalledWith(findProductDto);
+            expect(findOneSpy).toHaveBeenCalledTimes(1);
+            expect(findOneSpy).toHaveBeenCalledWith(findProductDto);
         });
     });
 
@@ -161,17 +222,17 @@ describe('ProductsController', () => {
                 price,
             } as Product;
 
-            jest.spyOn(mockProductsService, 'update').mockReturnValue(product);
+            const updateSpy = jest.spyOn(mockProductsService, 'update').mockReturnValue(product);
 
-            await expect(productsController.update(productCode, updateProductDto)).resolves.toBe(
+            await expect(productsController.update(productCode, updateProductDto)).resolves.toEqual(
                 product,
             );
 
-            expect(mockProductsService.update).toHaveBeenCalledTimes(1);
-            expect(mockProductsService.update).toHaveBeenCalledWith(productCode, updateProductDto);
+            expect(updateSpy).toHaveBeenCalledTimes(1);
+            expect(updateSpy).toHaveBeenCalledWith(productCode, updateProductDto);
         });
 
-        it('should resolve to false if product does not exist', async () => {
+        it('should throw not found exception if product does not exist', async () => {
             const productCode = '1002';
             const location = 'West Malaysia';
             const price = 400;
@@ -182,14 +243,16 @@ describe('ProductsController', () => {
                 price,
             };
 
-            jest.spyOn(mockProductsService, 'update').mockRejectedValue(false);
+            const updateSpy = jest
+                .spyOn(mockProductsService, 'update')
+                .mockRejectedValue(new NotFoundException('Unable to update product!'));
 
-            await expect(productsController.update(productCode, updateProductDto)).rejects.toBe(
-                false,
+            await expect(productsController.update(productCode, updateProductDto)).rejects.toThrow(
+                new NotFoundException('Unable to update product!'),
             );
 
-            expect(mockProductsService.update).toHaveBeenCalledTimes(1);
-            expect(mockProductsService.update).toHaveBeenCalledWith(productCode, updateProductDto);
+            expect(updateSpy).toHaveBeenCalledTimes(1);
+            expect(updateSpy).toHaveBeenCalledWith(productCode, updateProductDto);
         });
     });
 
@@ -201,23 +264,27 @@ describe('ProductsController', () => {
         it('should resolve to true if product is deleted successfully', async () => {
             const productCode = '1001';
 
-            jest.spyOn(mockProductsService, 'delete').mockReturnValue(true);
+            const deleteSpy = jest.spyOn(mockProductsService, 'delete').mockReturnValue(true);
 
             await expect(productsController.delete(productCode)).resolves.toBe(true);
 
-            expect(mockProductsService.delete).toHaveBeenCalledTimes(1);
-            expect(mockProductsService.delete).toHaveBeenCalledWith(productCode);
+            expect(deleteSpy).toHaveBeenCalledTimes(1);
+            expect(deleteSpy).toHaveBeenCalledWith(productCode);
         });
 
-        it('should resolve to false if product does not exist', async () => {
+        it('should throw not found exception if product does not exist', async () => {
             const productCode = '1001';
 
-            jest.spyOn(mockProductsService, 'delete').mockRejectedValue(false);
+            const deleteSpy = jest
+                .spyOn(mockProductsService, 'delete')
+                .mockRejectedValue(new NotFoundException('Unable to delete product!'));
 
-            await expect(productsController.delete(productCode)).rejects.toBe(false);
+            await expect(productsController.delete(productCode)).rejects.toThrow(
+                new NotFoundException('Unable to delete product!'),
+            );
 
-            expect(mockProductsService.delete).toHaveBeenCalledTimes(1);
-            expect(mockProductsService.delete).toHaveBeenCalledWith(productCode);
+            expect(deleteSpy).toHaveBeenCalledTimes(1);
+            expect(deleteSpy).toHaveBeenCalledWith(productCode);
         });
     });
 });

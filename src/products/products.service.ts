@@ -35,6 +35,7 @@ export class ProductsService {
         if (!product) {
             throw new NotFoundException('Product information not found!');
         }
+
         return product;
     }
 

@@ -27,7 +27,7 @@ export class ProductsController {
     @Get()
     @Roles(Role.Admin, Role.User)
     async findOne(@Query() findOneDto: FindOneDto) {
-        const cacheKey = `product-${findOneDto.productCode}`;
+        const cacheKey = `product_${findOneDto.productCode}_${findOneDto.location}`;
 
         const cachedValue = await this.cacheManager.get<string>(cacheKey);
 
