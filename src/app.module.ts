@@ -1,22 +1,15 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { APP_GUARD, APP_FILTER } from '@nestjs/core';
-import { CacheModule } from '@nestjs/cache-manager';
+import { APP_GUARD } from '@nestjs/core';
 
 import { ProductsModule } from './products/products.module';
 import { Product } from './products/product.entity';
-
 import { AuthGuard } from './common/guards/auth.guard';
 import { AuthModule } from './auth/auth.module';
-import { CatchEverythingFilter } from './exception-filters/catch-all-exception.filter';
 
 @Module({
     imports: [
-        CacheModule.register({
-            ttl: 10000,
-            isGlobal: true,
-        }),
         ConfigModule.forRoot({
             isGlobal: true,
         }),
@@ -31,7 +24,7 @@ import { CatchEverythingFilter } from './exception-filters/catch-all-exception.f
                 password: configService.get<string>('DB_PASSWORD'),
                 database: configService.get<string>('DB_NAME'),
                 entities: [Product],
-                synchronize: true,
+                synchronize: false,
             }),
         }),
         ProductsModule,
@@ -41,10 +34,6 @@ import { CatchEverythingFilter } from './exception-filters/catch-all-exception.f
         {
             provide: APP_GUARD,
             useClass: AuthGuard,
-        },
-        {
-            provide: APP_FILTER,
-            useClass: CatchEverythingFilter,
         },
     ],
 })

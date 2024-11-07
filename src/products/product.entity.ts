@@ -11,6 +11,6 @@ export class Product {
     @Column()
     location: string;
 
-    @Column('float8')
+    @Column()
     price: number;
 }

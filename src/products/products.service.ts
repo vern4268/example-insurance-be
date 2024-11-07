@@ -35,6 +35,7 @@ export class ProductsService {
         if (!product) {
             throw new NotFoundException('Product information not found!');
         }
+
         return product;
     }
 
@@ -45,7 +46,7 @@ export class ProductsService {
         );
 
         if (updateResult.affected === 0) {
-            throw new NotFoundException('Unable to update product!');
+            return false;
         }
 
         return await this.productsRepository.findOneBy({ productCode });
@@ -55,7 +56,7 @@ export class ProductsService {
         const deleteResult = await this.productsRepository.delete({ productCode });
 
         if (deleteResult.affected === 0) {
-            throw new NotFoundException('Unable to delete product!');
+            return false;
         }
 
         return true;

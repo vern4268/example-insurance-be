@@ -1,6 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
-import { Column } from 'typeorm';
+import { IsNotEmpty, IsNumber } from 'class-validator';
 
 export class CreateProductDto {
     @ApiProperty({
@@ -8,7 +7,6 @@ export class CreateProductDto {
         default: 1001,
     })
     @IsNotEmpty()
-    @IsString()
     productCode: string;
 
     @ApiProperty({
@@ -16,7 +14,6 @@ export class CreateProductDto {
         default: 'West Malaysia',
     })
     @IsNotEmpty()
-    @IsString()
     location: string;
 
     @IsNumber()
