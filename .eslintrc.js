@@ -55,5 +55,6 @@ module.exports = {
                 'props': false
             }
         ],
+        'object-curly-spacing': 'always'
     },
 };
