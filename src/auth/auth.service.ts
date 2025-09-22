@@ -6,7 +6,7 @@ import { Role } from 'src/common/enum/role.enum';
 
 @Injectable()
 export class AuthService {
-    constructor(private readonly jwtService: JwtService) { }
+    constructor(private readonly jwtService: JwtService) {}
 
     async login(loginDto: LoginDto) {
         const { role } = loginDto;
